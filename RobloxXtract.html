@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roblox Asset Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:           #0e0e18;
+      --surface:      #16162a;
+      --surface-2:    #1c1c35;
+      --border:       #2a2a4a;
+      --border-hi:    #3f3f6e;
+      --text:         #dde1f5;
+      --muted:        #4a4a7a;
+      --muted-2:      #7878aa;
+      --accent:       #7c83f5;
+      --accent-2:     #a78bfa;
+      --accent-glow:  rgba(124, 131, 245, 0.18);
+      --accent-border:rgba(124, 131, 245, 0.28);
+      --error:        #f87171;
+      --error-dim:    rgba(248, 113, 113, 0.1);
+      --success:      #6ee7b7;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,131,245,0.08) 0%, transparent 70%);
+    }
+
+    /* JS sets --scale so the card always fits within the viewport */
+    .scaler {
+      transform-origin: center center;
+      transform: scale(var(--scale, 1));
+      width: 580px;
+      flex-shrink: 0;
+    }
+
+    .wrap { width: 100%; }
+
+    /* Header */
+    .header { margin-bottom: 36px; }
+
+    .header-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .roblox-dot {
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .header-eyebrow span {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted-2);
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 300;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .header h1 strong {
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Input */
+    .input-wrap { display: flex; gap: 8px; margin-bottom: 20px; }
+
+    input[type="text"] {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 13px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 13px 16px;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="text"]::placeholder { color: var(--muted); }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .btn {
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 20px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #0a0a18;
+      font-weight: 600;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 4px 20px var(--accent-glow); }
+
+    .btn-ghost {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted-2);
+      font-size: 13px;
+      padding: 10px 14px;
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--border-hi); color: var(--text); }
+
+    .btn-dl {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #0a0a18;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+    }
+    .btn-dl:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 4px 16px var(--accent-glow); }
+
+    /* Status */
+    .status {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .status.error { display:block; background:var(--error-dim); border:1px solid rgba(248,113,113,0.22); color:var(--error); }
+    .status.info  { display:block; background:var(--accent-glow); border:1px solid var(--accent-border); color:var(--accent); }
+
+    /* Result card */
+    .result { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:none; }
+    .result.visible { display:block; }
+
+    .card-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 18px; border-bottom:1px solid var(--border); gap:12px;
+    }
+    .card-id { font-family:var(--mono); font-size:12px; color:var(--muted-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .type-badge {
+      font-family:var(--mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+      padding:4px 10px; border-radius:6px;
+      background:var(--accent-glow); color:var(--accent); border:1px solid var(--accent-border);
+      flex-shrink:0;
+    }
+
+    /* Preview */
+    .preview-area {
+      padding:20px 18px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      min-height:80px; background:var(--surface-2);
+    }
+    .preview-area img { max-width:100%; max-height:280px; border-radius:8px; display:block; }
+    .preview-area audio { width:100%; accent-color:var(--accent); }
+
+    .preview-audio-wrap { width:100%; display:flex; flex-direction:column; gap:10px; }
+    .preview-audio-name { font-family:var(--mono); font-size:11px; color:var(--muted-2); text-align:center; }
+
+    .no-preview { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--muted); }
+    .no-preview svg { opacity:0.25; }
+    .no-preview span { font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+    .spinner {
+      width:20px; height:20px; border:2px solid var(--border);
+      border-top-color:var(--accent); border-radius:50%;
+      animation:spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Actions */
+    .actions { padding:14px 18px; display:flex; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--border); }
+
+    /* URL list */
+    .url-row { display:flex; align-items:center; gap:10px; padding:10px 18px; border-bottom:1px solid var(--border); }
+    .url-row:last-child { border-bottom:none; }
+    .url-lbl { font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); min-width:52px; flex-shrink:0; }
+    .url-val { font-family:var(--mono); font-size:11px; color:var(--muted-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; cursor:pointer; transition:color 0.15s; }
+    .url-val:hover { color:var(--text); }
+    .copy-btn { font-family:var(--mono); font-size:10px; background:none; border:1px solid var(--border); color:var(--muted); padding:3px 8px; border-radius:4px; cursor:pointer; flex-shrink:0; transition:border-color 0.15s,color 0.15s; }
+    .copy-btn:hover { border-color:var(--border-hi); color:var(--text); }
+    .copy-btn.copied { color:var(--success); border-color:rgba(110,231,183,0.3); }
+  </style>
+</head>
+<body>
+<div class="scaler">
+<div class="wrap">
+  <header class="header">
+    <div class="header-eyebrow">
+      <div class="roblox-dot"></div>
+      <span>Asset Tool</span>
+    </div>
+    <h1>Roblox <strong>Asset Downloader</strong></h1>
+  </header>
+
+  <div class="input-wrap">
+    <input id="assetInput" type="text" placeholder="rbxassetid://… or numeric ID" spellcheck="false" autocomplete="off" />
+    <button class="btn btn-primary" id="fetchBtn">Fetch</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div id="result" class="result">
+    <div class="card-head">
+      <span class="card-id" id="cardId">—</span>
+      <span class="type-badge" id="typeBadge">—</span>
+    </div>
+    <div class="preview-area" id="previewArea"><div class="spinner"></div></div>
+    <div class="actions" id="actionBar"></div>
+    <div id="urlList"></div>
+  </div>
+</div><!-- .wrap -->
+</div><!-- .scaler -->
+
+<script>
+// ── Viewport-fit scaling ──────────────────────────────────────────────────────
+const scaler = document.querySelector('.scaler');
+const BASE_W = 580;   // design width
+const BASE_H = 680;   // approx design height (tall enough for result card)
+const PAD    = 40;    // min breathing room
+
+function applyScale() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const scaleX = (vw - PAD) / BASE_W;
+  const scaleY = (vh - PAD) / BASE_H;
+  const scale  = Math.min(scaleX, scaleY, 1.6); // cap at 1.6× so it doesn't go huge on 4K
+  scaler.style.setProperty('--scale', scale);
+}
+
+applyScale();
+window.addEventListener('resize', applyScale);
+// CORS proxy — used to hit Roblox APIs and fetch content-type from asset delivery
+const PROXY = 'https://corsproxy.io/?url=';
+
+const TYPE_MAP = {
+  1:'Image',2:'T-Shirt',3:'Audio',4:'Mesh',5:'Lua Script',6:'HTML',7:'Text',
+  8:'Hat',9:'Place',10:'Model',11:'Shirt',12:'Pants',13:'Decal',16:'Head',
+  17:'Face',18:'Gear',19:'Badge',21:'Torso',22:'Right Arm',23:'Left Arm',
+  24:'Left Leg',25:'Right Leg',26:'Package',28:'Game Pass',31:'Plugin',
+  32:'Solid Model',33:'MeshPart',34:'Hair',35:'Face Acc',36:'Neck Acc',
+  37:'Shoulder Acc',38:'Front Acc',39:'Back Acc',40:'Waist Acc',
+  41:'Climb Anim',42:'Death Anim',43:'Fall Anim',44:'Idle Anim',
+  45:'Jump Anim',46:'Run Anim',47:'Swim Anim',48:'Walk Anim',
+  49:'Pose Anim',52:'Emote Anim',53:'Video',54:'Texture Pack',
+  64:'Font',68:'Dynamic Head',70:'Code Snippet',
+};
+
+const AUDIO_IDS = new Set([3]);
+const IMAGE_IDS = new Set([1,2,11,12,13,17,19,28,54]);
+
+// DOM
+const assetInput = document.getElementById('assetInput');
+const fetchBtn   = document.getElementById('fetchBtn');
+const statusEl   = document.getElementById('status');
+const resultEl   = document.getElementById('result');
+const previewArea= document.getElementById('previewArea');
+const cardId     = document.getElementById('cardId');
+const typeBadge  = document.getElementById('typeBadge');
+const actionBar  = document.getElementById('actionBar');
+const urlList    = document.getElementById('urlList');
+
+// ── URL builders
+const assetUrl  = id => `https://assetdelivery.roblox.com/v1/asset/?id=${id}`;
+const thumbUrl  = id => `https://www.roblox.com/asset-thumbnail/image?assetId=${id}&width=512&height=512&format=png`;
+const catalogUrl= id => `https://www.roblox.com/catalog/${id}`;
+
+// ── UI helpers
+function extractId(raw) {
+  if (!raw) return null;
+  const t = raw.trim();
+  if (/^\d+$/.test(t)) return t;
+  const m = t.match(/(\d{4,})/);
+  return m ? m[1] : null;
+}
+
+function setStatus(msg, type) { statusEl.textContent=msg; statusEl.className=`status ${type}`; }
+function clearStatus() { statusEl.className='status'; }
+function setLoading() { previewArea.innerHTML='<div class="spinner"></div>'; }
+function setNoPreview(msg='no preview available') {
+  previewArea.innerHTML=`<div class="no-preview">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+      <polyline points="13,2 13,9 20,9"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.5"/>
+    </svg><span>${msg}</span></div>`;
+}
+
+function makeCopyBtn(text) {
+  const b = document.createElement('button'); b.className='copy-btn'; b.textContent='copy';
+  b.onclick = () => navigator.clipboard.writeText(text).then(() => {
+    b.textContent='copied!'; b.classList.add('copied');
+    setTimeout(()=>{ b.textContent='copy'; b.classList.remove('copied'); }, 2000);
+  });
+  return b;
+}
+
+function addUrlRow(label, url) {
+  const row=document.createElement('div'); row.className='url-row';
+  const lbl=document.createElement('span'); lbl.className='url-lbl'; lbl.textContent=label;
+  const val=document.createElement('span'); val.className='url-val'; val.textContent=url; val.title=url;
+  val.onclick=()=>window.open(url,'_blank','noopener');
+  row.append(lbl,val,makeCopyBtn(url)); urlList.appendChild(row);
+}
+
+function makeBtn(text, cls, onClick) {
+  const b=document.createElement('button'); b.className=`btn ${cls}`; b.textContent=text; b.onclick=onClick; return b;
+}
+
+async function downloadBlob(url, filename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return false;
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename; a.click(); return true;
+  } catch { return false; }
+}
+
+async function canvasDownload(imgEl, filename) {
+  return new Promise(res => {
+    if (!imgEl.complete || !imgEl.naturalWidth) { res(false); return; }
+    const c = document.createElement('canvas');
+    c.width=imgEl.naturalWidth; c.height=imgEl.naturalHeight;
+    try {
+      c.getContext('2d').drawImage(imgEl,0,0);
+      c.toBlob(blob => {
+        if (!blob) { res(false); return; }
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); res(true);
+      },'image/png');
+    } catch { res(false); }
+  });
+}
+
+// ── Roblox API fetch (via CORS proxy)
+async function fetchInfo(id) {
+  try {
+    const res = await fetch(PROXY + encodeURIComponent(`https://economy.roblox.com/v2/assets/${id}/details`),
+      { signal: AbortSignal.timeout(7000) });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+// Probe asset delivery to get content-type (resolves audio vs image vs binary)
+async function probeContentType(id) {
+  try {
+    const res = await fetch(PROXY + encodeURIComponent(assetUrl(id)),
+      { method:'HEAD', signal: AbortSignal.timeout(7000) });
+    return res.headers.get('content-type') || '';
+  } catch { return ''; }
+}
+
+function ctToCategory(ct) {
+  if (!ct) return null;
+  if (/audio|ogg|mpeg|wav|flac/i.test(ct)) return 'audio';
+  if (/image|png|jpeg|webp/i.test(ct))     return 'image';
+  if (/xml|octet-stream/i.test(ct))        return 'model';
+  return null;
+}
+
+function ctToExt(ct) {
+  if (/ogg/i.test(ct))         return 'ogg';
+  if (/wav/i.test(ct))         return 'wav';
+  if (/flac/i.test(ct))        return 'flac';
+  if (/mpeg|mp3/i.test(ct))    return 'mp3';
+  if (/jpeg/i.test(ct))        return 'jpg';
+  if (/webp/i.test(ct))        return 'webp';
+  if (/png/i.test(ct))         return 'png';
+  if (/audio/i.test(ct))       return 'mp3';
+  return null;
+}
+
+// ── Renderers ─────────────────────────────────────────────────────────────────
+function renderImage(id, info, label) {
+  typeBadge.textContent = label || 'Image';
+  const thumb=thumbUrl(id), asset=assetUrl(id);
+
+  previewArea.innerHTML='';
+  const img=new Image(); img.crossOrigin='anonymous';
+  img.style.cssText='max-width:100%;max-height:280px;border-radius:8px;display:block;';
+  img.onload = ()=>{ previewArea.innerHTML=''; previewArea.appendChild(img); };
+  img.onerror= ()=> setNoPreview('thumbnail unavailable — asset may be private');
+  img.src = thumb;
+  previewArea.appendChild(img);
+
+  actionBar.innerHTML='';
+  const dlBtn=makeBtn('↓ Download PNG','btn-dl', async ()=>{
+    dlBtn.disabled=true; dlBtn.textContent='Downloading…';
+    let ok = await downloadBlob(thumb,`${id}.png`);
+    if (!ok) ok = await canvasDownload(img,`${id}.png`);
+    if (!ok) window.open(thumb,'_blank','noopener');
+    dlBtn.disabled=false; dlBtn.textContent='↓ Download PNG';
+  });
+  actionBar.append(dlBtn, makeBtn('Open Asset URL','btn-ghost',()=>window.open(asset,'_blank','noopener')));
+  if (info) actionBar.appendChild(makeBtn('View Catalog','btn-ghost',()=>window.open(catalogUrl(id),'_blank','noopener')));
+
+  urlList.innerHTML=''; addUrlRow('Asset',asset); addUrlRow('Thumb',thumb);
+}
+
+function renderAudio(id, info, contentType, label) {
+  typeBadge.textContent = label || 'Audio';
+  const asset=assetUrl(id);
+  const ext = ctToExt(contentType) || 'mp3';
+
+  previewArea.innerHTML='';
+  const wrap=document.createElement('div'); wrap.className='preview-audio-wrap';
+  const name=document.createElement('div'); name.className='preview-audio-name';
+  name.textContent = info?.Name || `Audio · ${id}`;
+  const audio=document.createElement('audio'); audio.controls=true; audio.src=asset;
+  audio.onerror=()=>{ name.textContent='Playback unavailable — asset may be private'; name.style.color='var(--error)'; };
+  wrap.append(name,audio); previewArea.appendChild(wrap);
+
+  actionBar.innerHTML='';
+  const dlBtn=makeBtn(`↓ Download .${ext}`,'btn-dl', async ()=>{
+    dlBtn.disabled=true; dlBtn.textContent='Downloading…';
+    const ok = await downloadBlob(asset,`${id}.${ext}`);
+    if (!ok) window.open(asset,'_blank','noopener');
+    dlBtn.disabled=false; dlBtn.textContent=`↓ Download .${ext}`;
+  });
+  actionBar.append(dlBtn, makeBtn('Open Asset URL','btn-ghost',()=>window.open(asset,'_blank','noopener')));
+  if (info) actionBar.appendChild(makeBtn('View Catalog','btn-ghost',()=>window.open(catalogUrl(id),'_blank','noopener')));
+
+  urlList.innerHTML=''; addUrlRow('Asset',asset);
+}
+
+function renderGeneric(id, info, label) {
+  typeBadge.textContent = label || 'Asset';
+  const asset=assetUrl(id), thumb=thumbUrl(id);
+
+  previewArea.innerHTML='';
+  const img=new Image();
+  img.style.cssText='max-width:100%;max-height:200px;border-radius:8px;opacity:0.8;display:block;';
+  img.onload=()=>{ previewArea.innerHTML=''; previewArea.appendChild(img); };
+  img.onerror=()=> setNoPreview(`no preview for ${label||'this asset type'}`);
+  img.src=thumb; previewArea.appendChild(img);
+
+  actionBar.innerHTML='';
+  const dlBtn=makeBtn('↓ Download Asset','btn-dl', async ()=>{
+    dlBtn.disabled=true; dlBtn.textContent='Downloading…';
+    const ok = await downloadBlob(asset,`${id}`);
+    if (!ok) window.open(asset,'_blank','noopener');
+    dlBtn.disabled=false; dlBtn.textContent='↓ Download Asset';
+  });
+  actionBar.append(dlBtn, makeBtn('Open Asset URL','btn-ghost',()=>window.open(asset,'_blank','noopener')));
+  if (info) actionBar.appendChild(makeBtn('View Catalog','btn-ghost',()=>window.open(catalogUrl(id),'_blank','noopener')));
+
+  urlList.innerHTML=''; addUrlRow('Asset',asset); addUrlRow('Thumb',thumb);
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+async function handleFetch() {
+  const id = extractId(assetInput.value);
+  if (!id) {
+    setStatus('No valid asset ID — paste rbxassetid://… or a raw number.', 'error');
+    resultEl.classList.remove('visible'); return;
+  }
+
+  clearStatus();
+  cardId.textContent = id;
+  typeBadge.textContent = 'Detecting…';
+  actionBar.innerHTML=''; urlList.innerHTML='';
+  setLoading();
+  resultEl.classList.add('visible');
+  fetchBtn.disabled = true;
+
+  // Run both in parallel
+  const [info, contentType] = await Promise.all([fetchInfo(id), probeContentType(id)]);
+
+  const typeId = info?.AssetTypeId;
+  const label  = typeId ? (TYPE_MAP[typeId] || info?.AssetTypeName || null) : null;
+
+  // Category: API wins; content-type probe is fallback
+  let cat;
+  if (typeId) {
+    if (AUDIO_IDS.has(typeId))      cat = 'audio';
+    else if (IMAGE_IDS.has(typeId)) cat = 'image';
+    else                            cat = 'generic';
+  } else {
+    cat = ctToCategory(contentType) || 'image'; // default to image if completely unknown
+  }
+
+  if (info?.Name) {
+    const n = info.Name;
+    cardId.textContent = `${id} · ${n.length>44 ? n.slice(0,44)+'…' : n}`;
+  }
+
+  if (!info && !contentType) {
+    setStatus('Metadata unavailable — asset may be private or rate-limited. Attempting to preview anyway.', 'info');
+  }
+
+  if      (cat === 'audio')   renderAudio(id, info, contentType, label);
+  else if (cat === 'image')   renderImage(id, info, label);
+  else                        renderGeneric(id, info, label);
+
+  fetchBtn.disabled = false;
+}
+
+fetchBtn.addEventListener('click', handleFetch);
+assetInput.addEventListener('keydown', e => { if (e.key==='Enter') handleFetch(); });
+</script>
+</body>
+</html>
